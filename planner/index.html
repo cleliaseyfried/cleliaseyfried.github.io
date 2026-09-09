@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Planner</title>
+  <style>
+    :root {
+      --surface: #ffffff; --ink: #1e293b; --muted: #94a3b8;
+      --border: #e2e8f0; --soft: #f1f5f9; --danger: #ef4444; --success: #10b981;
+      --shadow: 0 20px 50px rgba(30, 27, 75, 0.16); --radius: 14px;
+      --accent: #6366f1; --accent-dark: #4f46e5; --accent-soft: #e0e7ff;
+    }
+    body[data-bucket="work"]   { --accent:#2563eb; --accent-dark:#1d4ed8; --accent-soft:#dbeafe; }
+    body[data-bucket="growth"] { --accent:#7c3aed; --accent-dark:#6d28d9; --accent-soft:#ede9fe; }
+    body[data-bucket="life"]   { --accent:#059669; --accent-dark:#047857; --accent-soft:#d1fae5; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; font-family: "Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+      color: var(--ink); background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      padding: 32px 16px; transition: background 0.4s ease;
+    }
+    .app { width:100%; max-width:720px; margin:0 auto; background:var(--surface);
+      border-radius:20px; box-shadow:var(--shadow); overflow:hidden; }
+
+    /* ---- Login gate ---- */
+    .gate {
+      max-width: 420px; margin: 8vh auto; background: var(--surface);
+      border-radius: 20px; box-shadow: var(--shadow); padding: 40px 34px; text-align: center;
+      animation: fadeIn 0.4s ease both;
+    }
+    .gate h1 { font-size: 1.7rem; font-weight: 800; margin-bottom: 6px; }
+    .gate p { color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+    .gate input {
+      width: 100%; font-family: inherit; font-size: 1rem; padding: 13px 16px;
+      border: 2px solid var(--border); border-radius: 12px; outline: none; margin-bottom: 14px;
+    }
+    .gate input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .gate button {
+      width: 100%; font-family: inherit; font-weight: 700; font-size: 1rem; color: #fff;
+      background: var(--accent); border: none; border-radius: 12px; padding: 14px; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .gate button:hover { background: var(--accent-dark); }
+    .gate button:active { transform: scale(0.97); }
+    .gate .msg { margin-top: 16px; font-size: 0.9rem; min-height: 20px; }
+    .gate .msg.ok { color: var(--success); }
+    .gate .msg.err { color: var(--danger); }
+    .hidden { display: none !important; }
+
+    header { padding: 22px 28px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+    header p { color: var(--muted); margin-top: 4px; font-size: 0.9rem; }
+    .header-right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+    .sync { font-size: 0.75rem; color: var(--muted); }
+    .sync.saving { color: #f59e0b; }
+    .sync.saved { color: var(--success); }
+    .signout { background:transparent; border:1px solid var(--border); color:var(--muted);
+      font-size:0.78rem; padding:5px 10px; border-radius:8px; cursor:pointer; }
+    .signout:hover { color: var(--ink); border-color: var(--muted); }
+
+    .tabs { display:flex; gap:8px; padding:18px 28px 0; }
+    .tab { flex:1; font-family:inherit; font-size:1rem; font-weight:600; padding:12px 8px;
+      border:none; border-radius:12px 12px 0 0; background:var(--soft); color:var(--muted);
+      cursor:pointer; transition:background 0.2s,color 0.2s; }
+    .tab:hover { color: var(--ink); }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab-body { border-top: 3px solid var(--accent); }
+
+    .bar { padding: 18px 28px 6px; display:flex; flex-direction:column; gap:12px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    input, select { font-family:inherit; font-size:0.95rem; padding:11px 14px; border:2px solid var(--border);
+      border-radius:11px; outline:none; color:var(--ink); background:var(--surface);
+      transition:border-color 0.2s, box-shadow 0.2s; }
+    input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+    .task-input { flex:1; min-width:180px; } .tags-input { flex:1; min-width:160px; }
+    .section-select { min-width:150px; cursor:pointer; }
+    .btn { font-family:inherit; font-weight:600; border:none; border-radius:11px; cursor:pointer;
+      padding:0 20px; transition:transform 0.12s, background 0.2s; }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary { background: var(--accent); color:#fff; } .btn-primary:hover { background: var(--accent-dark); }
+    .btn-ghost { background: var(--soft); color: var(--ink); font-size:0.85rem; padding:9px 14px; }
+    .btn-ghost:hover { background: var(--border); }
+    .hint { font-size: 0.8rem; color: var(--muted); }
+
+    .sections { padding: 8px 28px 20px; }
+    .section { margin-bottom:22px; border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden; animation: fadeIn 0.3s ease both; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-6px);} to{opacity:1;transform:none;} }
+    .section-head { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--accent-soft); }
+    .section-title { flex:1; font-weight:700; font-size:1.05rem; background:transparent; border:none;
+      padding:4px 6px; border-radius:6px; color:var(--ink); }
+    .section-title:focus { background:#fff; box-shadow:0 0 0 2px var(--accent); }
+    .section-count { font-size:0.8rem; color:var(--accent-dark); font-weight:600; }
+    .section-del { background:transparent; border:none; cursor:pointer; font-size:1rem; padding:4px 6px; border-radius:6px; }
+    .section-del:hover { background: rgba(0,0,0,0.08); }
+    .section-tasks { list-style:none; padding:8px; }
+
+    .task { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px;
+      margin-bottom:6px; background:var(--surface); transition:background 0.15s,opacity 0.3s,transform 0.3s;
+      animation: fadeIn 0.25s ease both; }
+    .task:hover { background: var(--soft); }
+    .task.removing { opacity:0; transform: translateX(30px); }
+    .checkbox { appearance:none; width:20px; height:20px; min-width:20px; border:2px solid var(--border);
+      border-radius:6px; cursor:pointer; position:relative; transition:background 0.2s,border-color 0.2s; }
+    .checkbox:checked { background:var(--success); border-color:var(--success); }
+    .checkbox:checked::after { content:"✓"; color:#fff; font-size:13px; font-weight:700;
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+    .task-main { flex:1; min-width:0; }
+    .task-text { font-size:0.98rem; word-break:break-word; cursor:pointer; }
+    .task.completed .task-text { text-decoration:line-through; color:var(--muted); }
+    .task-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+    .tag { font-size:0.72rem; font-weight:600; padding:2px 8px; background:var(--accent-soft);
+      color:var(--accent-dark); border-radius:999px; }
+    .task-edit { flex:1; font-size:0.98rem; padding:5px 8px; border:2px solid var(--accent); border-radius:7px; outline:none; }
+    .icon-btn { background:transparent; border:none; cursor:pointer; font-size:0.95rem; padding:5px 7px;
+      border-radius:7px; transition:background 0.15s; }
+    .icon-btn:hover { background: var(--border); }
+    .empty { text-align:center; color:var(--muted); padding:24px; font-size:0.95rem; }
+    .empty .emoji { font-size:2.4rem; display:block; margin-bottom:8px; }
+
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(140%);
+      background:var(--ink); color:#fff; padding:12px 18px; border-radius:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.3); display:flex; gap:14px; align-items:center;
+      font-size:0.9rem; z-index:100; opacity:0; max-width:90vw;
+      transition:transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast-undo { background:transparent; border:none; color:#a5b4fc; font-weight:700; cursor:pointer; font-size:0.9rem; }
+    .toast-undo:hover { text-decoration: underline; }
+
+    @media (max-width: 560px) {
+      .row { flex-direction: column; }
+      .task-input, .tags-input, .section-select, .btn { width: 100%; }
+      .btn { padding: 12px; }
+    }
+  </style>
+</head>
+<body data-bucket="work">
+
+  <!-- ===== Login gate ===== -->
+  <div class="gate" id="gate">
+    <h1>🔐 My Planner</h1>
+    <p>Private to you. Enter your email and we'll send a one-time sign-in link.</p>
+    <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
+    <button id="loginBtn">Send me a login link</button>
+    <div class="msg" id="gateMsg"></div>
+  </div>
+
+  <!-- ===== App (hidden until logged in) ===== -->
+  <div class="app hidden" id="app">
+    <header>
+      <div>
+        <h1 id="appTitle">💼 Work</h1>
+        <p id="appSub"></p>
+      </div>
+      <div class="header-right">
+        <span class="sync" id="sync"></span>
+        <button class="signout" id="signoutBtn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-bucket="work">💼 Work</button>
+      <button class="tab" data-bucket="growth">🚀 Growth</button>
+      <button class="tab" data-bucket="life">🌿 Life</button>
+    </div>
+
+    <div class="tab-body">
+      <div class="bar">
+        <div class="row">
+          <input type="text" id="taskInput" class="task-input" placeholder="Add a task…" maxlength="200" autocomplete="off" />
+          <select id="sectionSelect" class="section-select" title="Section"></select>
+          <button id="addTaskBtn" class="btn btn-primary">Add</button>
+        </div>
+        <div class="row">
+          <input type="text" id="tagsInput" class="tags-input" placeholder="Tags (comma separated), e.g. ✈️ travel, 🔥 urgent" autocomplete="off" />
+          <button id="addSectionBtn" class="btn btn-ghost">＋ New section</button>
+        </div>
+        <span class="hint">Click a task to edit · click a section title to rename · tags can include emoji. Everything syncs to the cloud.</span>
+      </div>
+      <div class="sections" id="sections"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span><button class="toast-undo" id="toastUndo" style="display:none">Undo</button></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ============ Supabase config ============
+    const SUPABASE_URL = "https://uonfvxgilbyydcehgbpj.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_5qbw0J1aK2nE14IAyi39Uw_rrIST-4Q";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const BUCKET_META = {
+      work:   { title: "💼 Work",   sub: "Job deliverables, meetings, and work travel." },
+      growth: { title: "🚀 Growth", sub: "Career growth, personal projects, and learning." },
+      life:   { title: "🌿 Life",   sub: "Private life, home, health, and personal travel." },
+    };
+    const BUCKETS = ["work", "growth", "life"];
+
+    // ============ State ============
+    let data = { work:{sections:[]}, growth:{sections:[]}, life:{sections:[]} };
+    let bucket = "work";
+    let editingTaskId = null;
+    let snapshot = null, toastTimer = null;
+    let user = null;
+    const saveTimers = {};   // debounce per bucket
+
+    // ============ Elements ============
+    const gate = document.getElementById("gate");
+    const app = document.getElementById("app");
+    const emailInput = document.getElementById("emailInput");
+    const loginBtn = document.getElementById("loginBtn");
+    const gateMsg = document.getElementById("gateMsg");
+    const signoutBtn = document.getElementById("signoutBtn");
+    const syncEl = document.getElementById("sync");
+
+    const body = document.body;
+    const appTitle = document.getElementById("appTitle");
+    const appSub = document.getElementById("appSub");
+    const tabs = document.querySelectorAll(".tab");
+    const taskInput = document.getElementById("taskInput");
+    const tagsInput = document.getElementById("tagsInput");
+    const sectionSelect = document.getElementById("sectionSelect");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const addSectionBtn = document.getElementById("addSectionBtn");
+    const sectionsEl = document.getElementById("sections");
+    const toast = document.getElementById("toast");
+    const toastMsg = document.getElementById("toastMsg");
+    const toastUndo = document.getElementById("toastUndo");
+
+    // ============ Utils ============
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const makeSection = (title) => ({ id: uid(), title, tasks: [] });
+    const cur = () => data[bucket];
+    const parseTags = (s) => s.split(",").map(x => x.trim()).filter(Boolean).slice(0, 8);
+    function flash(el){ el.style.borderColor="var(--danger)"; setTimeout(()=>el.style.borderColor="",900); }
+
+    function seedBucket(b) {
+      const seeds = {
+        work:   ["Books Compliance", "Meetings", "Work Travel"],
+        growth: ["Career Growth", "Personal Projects", "Learning"],
+        life:   ["Home", "Health", "Trips"],
+      };
+      return { sections: seeds[b].map(makeSection) };
+    }
+
+    // ============ Auth ============
+    loginBtn.addEventListener("click", sendMagicLink);
+    emailInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMagicLink(); });
+
+    async function sendMagicLink() {
+      const email = emailInput.value.trim();
+      if (!email) { flash(emailInput); return; }
+      gateMsg.className = "msg"; gateMsg.textContent = "Sending…";
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.href }
+      });
+      if (error) { gateMsg.className = "msg err"; gateMsg.textContent = "⚠️ " + error.message; }
+      else { gateMsg.className = "msg ok"; gateMsg.textContent = "✅ Check your email for the login link. You can close this tab."; }
+    }
+
+    signoutBtn.addEventListener("click", async () => {
+      await sb.auth.signOut();
+      location.reload();
+    });
+
+    // React to auth state (handles the magic-link redirect too).
+    sb.auth.onAuthStateChange((_event, session) => {
+      if (session && session.user) { user = session.user; onLoggedIn(); }
+    });
+
+    async function init() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && session.user) { user = session.user; onLoggedIn(); }
+    }
+
+    async function onLoggedIn() {
+      gate.classList.add("hidden");
+      app.classList.remove("hidden");
+      await loadAll();
+      render();
+      taskInput.focus();
+    }
+
+    // ============ Load / save (cloud) ============
+    async function loadAll() {
+      setSync("loading");
+      const { data: rows, error } = await sb
+        .from("planner_buckets")
+        .select("bucket, data")
+        .eq("user_id", user.id);
+      if (error) { setSync("error"); showToast("⚠️ Load failed: " + error.message); return; }
+
+      const byBucket = {};
+      (rows || []).forEach(r => { byBucket[r.bucket] = r.data; });
+
+      // Seed any bucket that doesn't exist yet (first login).
+      for (const b of BUCKETS) {
+        if (byBucket[b] && Array.isArray(byBucket[b].sections)) {
+          data[b] = byBucket[b];
+        } else {
+          data[b] = seedBucket(b);
+          await saveBucket(b, true); // create the row immediately
+        }
+      }
+      setSync("saved");
+    }
+
+    async function saveBucket(b, immediate = false) {
+      const doSave = async () => {
+        setSync("saving");
+        const { error } = await sb.from("planner_buckets").upsert({
+          user_id: user.id,
+          bucket: b,
+          data: data[b],
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,bucket" });
+        setSync(error ? "error" : "saved");
+        if (error) showToast("⚠️ Save failed: " + error.message);
+      };
+      if (immediate) { await doSave(); return; }
+      // debounce: coalesce rapid edits into one write per bucket
+      clearTimeout(saveTimers[b]);
+      setSync("saving");
+      saveTimers[b] = setTimeout(doSave, 600);
+    }
+    function persist() { saveBucket(bucket); }
+
+    function setSync(state) {
+      syncEl.className = "sync";
+      if (state === "saving")  { syncEl.classList.add("saving"); syncEl.textContent = "Saving…"; }
+      else if (state === "saved") { syncEl.classList.add("saved"); syncEl.textContent = "✓ Synced"; }
+      else if (state === "loading") { syncEl.textContent = "Loading…"; }
+      else if (state === "error") { syncEl.style.color = "var(--danger)"; syncEl.textContent = "⚠️ Sync error"; }
+    }
+
+    // ============ Undo / toast ============
+    function takeSnapshot() { snapshot = JSON.parse(JSON.stringify(data[bucket])); }
+    function undo() {
+      if (!snapshot) return;
+      data[bucket] = snapshot; snapshot = null; persist(); render(); showToast("Undone");
+    }
+    function showToast(msg, withUndo = false) {
+      clearTimeout(toastTimer);
+      toastMsg.textContent = msg;
+      toastUndo.style.display = withUndo ? "inline" : "none";
+      toast.classList.add("show");
+      toastTimer = setTimeout(() => toast.classList.remove("show"), withUndo ? 5000 : 2000);
+    }
+
+    // ============ Actions ============
+    function addTask() {
+      const text = taskInput.value.trim();
+      if (!text) { taskInput.focus(); flash(taskInput); return; }
+      let sid = sectionSelect.value;
+      if (!sid) { const s = makeSection("General"); cur().sections.push(s); sid = s.id; }
+      const section = cur().sections.find(s => s.id === sid);
+      section.tasks.unshift({ id: uid(), text, done: false, tags: parseTags(tagsInput.value) });
+      taskInput.value = ""; tagsInput.value = "";
+      persist(); render(); taskInput.focus();
+    }
+    function addSection() {
+      const name = prompt("Name this section:");
+      if (name === null) return;
+      cur().sections.push(makeSection(name.trim() || "Untitled"));
+      persist(); render();
+    }
+    function renameSection(id, value) {
+      const s = cur().sections.find(s => s.id === id);
+      if (s) { s.title = value.trim() || "Untitled"; persist(); }
+    }
+    function deleteSection(id) {
+      const s = cur().sections.find(s => s.id === id);
+      if (!s) return;
+      const n = s.tasks.length;
+      if (!confirm(`Delete section "${s.title}"${n ? ` and its ${n} task(s)` : ""}?`)) return;
+      takeSnapshot();
+      cur().sections = cur().sections.filter(x => x.id !== id);
+      persist(); render(); showToast("Section deleted", true);
+    }
+    function toggleTask(sid, tid) {
+      const t = findTask(sid, tid);
+      if (t) { t.done = !t.done; persist(); render(); }
+    }
+    function deleteTask(sid, tid, el) {
+      takeSnapshot();
+      const finish = () => {
+        const s = cur().sections.find(s => s.id === sid);
+        s.tasks = s.tasks.filter(t => t.id !== tid);
+        persist(); render(); showToast("Task deleted", true);
+      };
+      if (el) { el.classList.add("removing"); setTimeout(finish, 260); } else finish();
+    }
+    function commitEdit(sid, tid, value) {
+      const t = findTask(sid, tid);
+      const text = value.trim();
+      if (t && text) t.text = text;
+      editingTaskId = null; persist(); render();
+    }
+    function findTask(sid, tid) {
+      const s = cur().sections.find(s => s.id === sid);
+      return s ? s.tasks.find(t => t.id === tid) : null;
+    }
+
+    // ============ Render ============
+    function render() {
+      body.dataset.bucket = bucket;
+      appTitle.textContent = BUCKET_META[bucket].title;
+      appSub.textContent = BUCKET_META[bucket].sub;
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.bucket === bucket));
+
+      sectionSelect.innerHTML = "";
+      cur().sections.forEach(s => {
+        const o = document.createElement("option"); o.value = s.id; o.textContent = s.title;
+        sectionSelect.appendChild(o);
+      });
+
+      sectionsEl.innerHTML = "";
+      if (cur().sections.length === 0) {
+        sectionsEl.innerHTML = `<div class="empty"><span class="emoji">🗂️</span>No sections yet. Create one to get started.</div>`;
+        return;
+      }
+      cur().sections.forEach(s => sectionsEl.appendChild(renderSection(s)));
+    }
+    function renderSection(section) {
+      const wrap = document.createElement("div"); wrap.className = "section";
+      const head = document.createElement("div"); head.className = "section-head";
+      const title = document.createElement("input"); title.className = "section-title"; title.value = section.title;
+      title.addEventListener("change", () => renameSection(section.id, title.value));
+      title.addEventListener("keydown", e => { if (e.key === "Enter") title.blur(); });
+      const count = document.createElement("span"); count.className = "section-count";
+      count.textContent = `${section.tasks.filter(t => t.done).length}/${section.tasks.length}`;
+      const del = document.createElement("button"); del.className = "section-del"; del.textContent = "🗑️"; del.title = "Delete section";
+      del.addEventListener("click", () => deleteSection(section.id));
+      head.append(title, count, del); wrap.appendChild(head);
+
+      const ul = document.createElement("ul"); ul.className = "section-tasks";
+      if (section.tasks.length === 0) {
+        const li = document.createElement("li"); li.className = "empty"; li.style.padding = "14px"; li.textContent = "No tasks here yet.";
+        ul.appendChild(li);
+      } else {
+        section.tasks.forEach(t => ul.appendChild(renderTask(section.id, t)));
+      }
+      wrap.appendChild(ul); return wrap;
+    }
+    function renderTask(sid, task) {
+      const li = document.createElement("li"); li.className = "task" + (task.done ? " completed" : "");
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.className = "checkbox"; cb.checked = task.done;
+      cb.addEventListener("change", () => toggleTask(sid, task.id)); li.appendChild(cb);
+
+      const main = document.createElement("div"); main.className = "task-main";
+      if (editingTaskId === task.id) {
+        const input = document.createElement("input"); input.className = "task-edit"; input.value = task.text;
+        input.addEventListener("keydown", e => {
+          if (e.key === "Enter") commitEdit(sid, task.id, input.value);
+          if (e.key === "Escape") { editingTaskId = null; render(); }
+        });
+        input.addEventListener("blur", () => commitEdit(sid, task.id, input.value));
+        main.appendChild(input);
+        setTimeout(() => { input.focus(); input.select(); }, 0);
+      } else {
+        const text = document.createElement("div"); text.className = "task-text"; text.textContent = task.text; text.title = "Click to edit";
+        text.addEventListener("click", () => { editingTaskId = task.id; render(); });
+        main.appendChild(text);
+        if (task.tags && task.tags.length) {
+          const tagWrap = document.createElement("div"); tagWrap.className = "task-tags";
+          task.tags.forEach(tg => { const el = document.createElement("span"); el.className = "tag"; el.textContent = tg; tagWrap.appendChild(el); });
+          main.appendChild(tagWrap);
+        }
+      }
+      li.appendChild(main);
+
+      const editBtn = document.createElement("button"); editBtn.className = "icon-btn"; editBtn.textContent = "✏️"; editBtn.title = "Edit";
+      editBtn.addEventListener("click", () => { editingTaskId = task.id; render(); });
+      const delBtn = document.createElement("button"); delBtn.className = "icon-btn"; delBtn.textContent = "🗑️"; delBtn.title = "Delete";
+      delBtn.addEventListener("click", () => deleteTask(sid, task.id, li));
+      li.append(editBtn, delBtn);
+      return li;
+    }
+
+    // ============ Events ============
+    tabs.forEach(t => t.addEventListener("click", () => {
+      bucket = t.dataset.bucket; editingTaskId = null; snapshot = null; render();
+    }));
+    addTaskBtn.addEventListener("click", addTask);
+    taskInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+    tagsInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+    addSectionBtn.addEventListener("click", addSection);
+    toastUndo.addEventListener("click", () => { undo(); toast.classList.remove("show"); });
+    document.addEventListener("keydown", e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && editingTaskId === null && snapshot) {
+        e.preventDefault(); undo();
+      }
+    });
+
+    // ============ Go ============
+    init();
+  </script>
+</body>
+</html>
