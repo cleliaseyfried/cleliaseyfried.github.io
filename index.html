@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clélia Seyfried — Senior Product Manager Tech</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-soft: #dbeafe;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.10);
+      --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.15);
+      --radius: 16px;
+      --max: 1100px;
+    }
+
+    /* Dark theme — overrides the CSS variables the whole design is built on. */
+    [data-theme="dark"] {
+      --bg: #0b1120;
+      --surface: #131c2e;
+      --ink: #e6edf6;
+      --muted: #94a3b8;
+      --primary: #60a5fa;
+      --primary-dark: #3b82f6;
+      --primary-soft: #1e293b;
+      --border: #26324a;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      width: 100%;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { padding: 96px 0; }
+    .section-title {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .section-subtitle {
+      color: var(--muted);
+      text-align: center;
+      max-width: 560px;
+      margin: 0 auto 56px;
+      font-size: 1.05rem;
+    }
+
+    /* ---------- Header / Nav ---------- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+    .logo {
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.5px;
+    }
+    .logo span { color: var(--primary); }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 1rem;
+      transition: color 0.2s ease;
+      position: relative;
+    }
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -6px;
+      width: 0; height: 2px;
+      background: var(--primary);
+      transition: width 0.25s ease;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-links a:hover::after { width: 100%; }
+
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+
+    .theme-toggle {
+      background: var(--primary-soft);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 1.1rem;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      transition: transform 0.15s ease, background 0.2s ease;
+      line-height: 1;
+    }
+    .theme-toggle:hover { transform: translateY(-2px); }
+
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.6rem;
+      color: var(--ink);
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn-ghost:hover {
+      background: var(--primary-soft);
+      transform: translateY(-2px);
+    }
+
+    /* ---------- Cover banner ---------- */
+    .cover {
+      width: 100%;
+      height: 220px;
+      overflow: hidden;
+      background: linear-gradient(120deg, #146eb4 0%, #232f3e 60%, #232f3e 100%);
+    }
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    @media (max-width: 860px) { .cover { height: 150px; } }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      padding: 72px 0 96px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    .hero .role {
+      font-size: clamp(1.2rem, 3vw, 1.5rem);
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 18px;
+    }
+    .hero .tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 32px;
+    }
+    .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    .avatar {
+      justify-self: center;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 5rem;
+      font-weight: 800;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #fff;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ---------- About ---------- */
+    #about { background: var(--surface); }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    .about-text p { margin-bottom: 18px; color: var(--ink); opacity: 0.85; }
+    .about-highlights {
+      display: grid;
+      gap: 16px;
+    }
+    .highlight-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .highlight-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .highlight-card h3 { font-size: 1.05rem; margin-bottom: 6px; }
+    .highlight-card .big { font-size: 2rem; font-weight: 800; color: var(--primary); }
+    .highlight-card p { color: var(--muted); font-size: 0.95rem; }
+
+    /* ---------- Skills ---------- */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+    }
+    .skill-cat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .skill-cat h3 {
+      font-size: 1.15rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .skill-cat h3 .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--primary);
+    }
+    .skill { margin-bottom: 18px; }
+    .skill:last-child { margin-bottom: 0; }
+    .skill-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .skill-label span:last-child { color: var(--muted); font-size: 0.85rem; }
+    .bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #7c3aed);
+      border-radius: 999px;
+      width: 0;
+      transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .badge {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 8px 14px;
+      border-radius: 999px;
+      transition: transform 0.15s ease;
+    }
+    .badge:hover { transform: translateY(-2px); }
+
+    /* ---------- Projects ---------- */
+    #projects { background: var(--surface); }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px;
+    }
+    .project-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .project-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+    .project-banner {
+      height: 120px;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      display: grid;
+      place-items: center;
+      font-size: 2.6rem;
+    }
+    .project-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+    .project-body h3 { font-size: 1.2rem; margin-bottom: 8px; }
+    .project-body p { color: var(--muted); font-size: 0.96rem; margin-bottom: 16px; flex: 1; }
+    .tech-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tech-tag {
+      font-size: 0.8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    .project-links { display: flex; gap: 16px; }
+    .project-links a {
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: color 0.2s ease;
+    }
+    .project-links a:hover { color: var(--primary-dark); text-decoration: underline; }
+
+    /* ---------- Contact ---------- */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 48px;
+      align-items: start;
+    }
+    .contact-intro h3 { font-size: 1.4rem; margin-bottom: 12px; }
+    .contact-intro p { color: var(--muted); margin-bottom: 24px; }
+    .contact-detail {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+    .contact-detail .ico {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      background: var(--primary-soft);
+      border-radius: 10px;
+      font-size: 1.1rem;
+    }
+    form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .field label .req { color: #dc2626; }
+    .field input, .field textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .field input:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+    .field textarea { resize: vertical; min-height: 130px; }
+    .field .error {
+      color: #dc2626;
+      font-size: 0.85rem;
+      margin-top: 6px;
+      display: none;
+    }
+    .field.invalid input, .field.invalid textarea { border-color: #dc2626; }
+    .field.invalid .error { display: block; }
+
+    .form-success {
+      display: none;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 16px 18px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .form-success.show { display: block; animation: fadeInUp 0.4s ease; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Footer ---------- */
+    /* Fixed dark footer in both themes — its text is light, so it must not
+       follow --ink (which flips to a light color in dark mode). */
+    footer {
+      background: #0b1120;
+      color: #cbd5e1;
+      padding: 56px 0 32px;
+      border-top: 1px solid var(--border);
+    }
+    .footer-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      text-align: center;
+    }
+    .socials { display: flex; gap: 16px; }
+    .socials a {
+      width: 44px; height: 44px;
+      display: grid; place-items: center;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    .socials a:hover { background: var(--primary); transform: translateY(-3px); color: #fff; }
+    .footer-email { color: #e2e8f0; font-weight: 500; }
+    .footer-email:hover { color: #fff; text-decoration: underline; }
+    .copyright {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 860px) {
+      section { padding: 72px 0; }
+      .hero-grid, .about-grid, .skills-grid, .contact-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-grid { text-align: center; }
+      .hero .tagline { margin-left: auto; margin-right: auto; }
+      .hero-actions { justify-content: center; }
+      .avatar { grid-row: 1; margin-bottom: 24px; width: 200px; height: 200px; font-size: 3.5rem; }
+      .about-highlights { grid-template-columns: repeat(3, 1fr); }
+
+      .nav-links {
+        position: fixed;
+        top: 72px; left: 0; right: 0;
+        background: var(--surface);
+        flex-direction: column;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-md);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+      .nav-links.open { max-height: 320px; }
+      .nav-links li { width: 100%; }
+      .nav-links a {
+        display: block;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-links a::after { display: none; }
+      .nav-toggle { display: block; }
+    }
+    @media (max-width: 520px) {
+      .about-highlights { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Header / Nav ===== -->
+  <header>
+    <div class="container nav">
+      <a href="#hero" class="logo">Clélia<span> Seyfried</span></a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#about">About</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Cover banner ===== -->
+  <div class="cover">
+    <img src="images/cover.jpeg" alt="Amazon cover banner"
+         onerror="this.style.display='none'" />
+  </div>
+
+  <!-- ===== Hero ===== -->
+  <section class="hero" id="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <span class="hero-eyebrow">📍 Amazon · France</span>
+        <h1>Clélia Seyfried</h1>
+        <div class="role">Senior Product Manager Tech — Automated Marketing</div>
+        <p class="tagline">I build automated, data-driven marketing products at scale — turning ambiguous, cross-functional problems into intelligent customer experiences that reach millions.</p>
+        <div class="hero-actions">
+          <a href="#projects" class="btn btn-primary">View My Work →</a>
+          <a href="#contact" class="btn btn-ghost">Contact Me</a>
+        </div>
+      </div>
+      <div class="avatar" aria-label="Clélia Seyfried">
+        <img src="images/headshot.jpeg" alt="Clélia Seyfried"
+             onerror="this.remove(); this.parentNode.textContent='CS';" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== About ===== -->
+  <section id="about">
+    <div class="container">
+      <h2 class="section-title">About Me</h2>
+      <p class="section-subtitle">A little bit about my background, what drives me, and what I'm focused on right now.</p>
+      <div class="about-grid">
+        <div class="about-text">
+          <p>I'm a Senior Product Manager – Tech at Amazon, where I lead automated marketing products that personalize how millions of customers experience Amazon across the marketing funnel. I love working at the intersection of product, engineering, and science — translating ambiguous business problems into technical roadmaps that ship.</p>
+          <p>My background bridges business and technology: I studied at ESSEC Grande École and Universität Mannheim before moving into product management for large-scale systems. That mix taught me to think about both customer and commercial impact, and to partner closely with applied scientists and engineers to turn data and machine learning into real customer value.</p>
+          <p>Right now I'm focused on automated, data-driven marketing — building the systems and models that move us beyond one-size-fits-all campaigns toward intelligent, personalized customer journeys. I care deeply about measurement, experimentation, and building strong cross-functional teams.</p>
+        </div>
+        <div class="about-highlights">
+          <div class="highlight-card">
+            <span class="big">Amazon</span>
+            <h3>Senior PM-T</h3>
+            <p>Automated Marketing, EU tech org.</p>
+          </div>
+          <div class="highlight-card">
+            <span class="big">WW</span>
+            <h3>Global Scale</h3>
+            <p>Products reaching millions of customers.</p>
+          </div>
+          <div class="highlight-card">
+            <span class="big">ML</span>
+            <h3>Science Partnership</h3>
+            <p>Causal inference &amp; personalization.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Skills ===== -->
+  <section id="skills">
+    <div class="container">
+      <h2 class="section-title">Skills &amp; Expertise</h2>
+      <p class="section-subtitle">A snapshot of the languages, frameworks, tools, and strengths I bring to a team.</p>
+      <div class="skills-grid">
+
+        <div class="skill-cat">
+          <h3><span class="dot"></span> Product Management</h3>
+          <div class="skill">
+            <div class="skill-label"><span>Product Strategy &amp; Roadmapping</span><span>95%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="95%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="skill-label"><span>Marketing Automation</span><span>92%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="92%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="skill-label"><span>Experimentation &amp; A/B Testing</span><span>88%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="88%"></div></div>
+          </div>
+        </div>
+
+        <div class="skill-cat">
+          <h3><span class="dot"></span> Technical &amp; Data</h3>
+          <div class="skill">
+            <div class="skill-label"><span>SQL &amp; Data Analysis</span><span>85%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="85%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="skill-label"><span>ML &amp; Causal Inference (applied)</span><span>78%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="78%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="skill-label"><span>APIs &amp; System Design (working)</span><span>72%</span></div>
+            <div class="bar"><div class="bar-fill" data-width="72%"></div></div>
+          </div>
+        </div>
+
+        <div class="skill-cat">
+          <h3><span class="dot"></span> Tools &amp; Platforms</h3>
+          <div class="badges">
+            <span class="badge">AWS</span>
+            <span class="badge">SQL</span>
+            <span class="badge">Amazon QuickSight</span>
+            <span class="badge">Tableau</span>
+            <span class="badge">Jira</span>
+            <span class="badge">A/B Testing</span>
+            <span class="badge">Python (basics)</span>
+          </div>
+        </div>
+
+        <div class="skill-cat">
+          <h3><span class="dot"></span> Leadership &amp; Soft Skills</h3>
+          <div class="badges">
+            <span class="badge">Stakeholder Management</span>
+            <span class="badge">Cross-functional Leadership</span>
+            <span class="badge">Ownership</span>
+            <span class="badge">Strategic Thinking</span>
+            <span class="badge">Bilingual (EN/FR)</span>
+            <span class="badge">Mentorship</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Projects ===== -->
+  <section id="projects">
+    <div class="container">
+      <h2 class="section-title">Featured Projects</h2>
+      <p class="section-subtitle">A few initiatives that reflect the kind of work I lead. Replace with your own specifics and metrics.</p>
+      <div class="projects-grid">
+
+        <div class="project-card">
+          <div class="project-banner">🎯</div>
+          <div class="project-body">
+            <h3>Automated Marketing Platform</h3>
+            <p>Led the product vision for an automated marketing system that personalizes customer journeys at scale, moving beyond one-size-fits-all campaigns to intelligent, data-driven targeting.</p>
+            <div class="tech-tags">
+              <span class="tech-tag">Product Strategy</span>
+              <span class="tech-tag">Personalization</span>
+              <span class="tech-tag">AWS</span>
+            </div>
+            <div class="project-links">
+              <a href="#" target="_blank" rel="noopener">Learn More ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-banner">📈</div>
+          <div class="project-body">
+            <h3>Marketing Measurement &amp; Experimentation</h3>
+            <p>Partnered with applied scientists on causal-inference-based measurement, building the experimentation framework that quantifies marketing impact across channels.</p>
+            <div class="tech-tags">
+              <span class="tech-tag">Causal Inference</span>
+              <span class="tech-tag">A/B Testing</span>
+              <span class="tech-tag">Analytics</span>
+            </div>
+            <div class="project-links">
+              <a href="#" target="_blank" rel="noopener">Learn More ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-banner">🤝</div>
+          <div class="project-body">
+            <h3>Cross-Functional Team Growth</h3>
+            <p>Championed hiring and team-building across the WW tech org — recruiting product, science, and engineering talent across Europe to scale marketing systems.</p>
+            <div class="tech-tags">
+              <span class="tech-tag">Leadership</span>
+              <span class="tech-tag">Hiring</span>
+              <span class="tech-tag">Team Building</span>
+            </div>
+            <div class="project-links">
+              <a href="#" target="_blank" rel="noopener">Learn More ↗</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Contact ===== -->
+  <section id="contact">
+    <div class="container">
+      <h2 class="section-title">Get In Touch</h2>
+      <p class="section-subtitle">Have an opportunity, a question, or just want to connect? Send me a message.</p>
+      <div class="contact-grid">
+        <div class="contact-intro">
+          <h3>Let's talk 👋</h3>
+          <p>I'm always open to discussing new projects, roles, or collaborations. Fill out the form and I'll get back to you.</p>
+          <div class="contact-detail"><span class="ico">✉️</span> clelia.seyfried@gmail.com</div>
+          <div class="contact-detail"><span class="ico">📍</span> France</div>
+          <div class="contact-detail"><span class="ico">💼</span> Senior Product Manager Tech @ Amazon</div>
+        </div>
+
+        <!-- Formspree: replace YOUR_FORM_ID with the ID from your Formspree form.
+             Sign up free at https://formspree.io, create a form pointed at
+             clelia.seyfried@gmail.com, and paste its endpoint ID below. -->
+        <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" novalidate>
+          <div class="form-success" id="formSuccess">✅ Thanks! Your message has been sent. I'll be in touch soon.</div>
+
+          <div class="field" id="field-name">
+            <label for="name">Name <span class="req">*</span></label>
+            <input type="text" id="name" name="name" placeholder="Jane Doe" />
+            <div class="error">Please enter your name.</div>
+          </div>
+
+          <div class="field" id="field-email">
+            <label for="email">Email <span class="req">*</span></label>
+            <input type="email" id="email" name="email" placeholder="jane@example.com" />
+            <div class="error">Please enter a valid email address.</div>
+          </div>
+
+          <div class="field" id="field-subject">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" placeholder="What's this about?" />
+          </div>
+
+          <div class="field" id="field-message">
+            <label for="message">Message <span class="req">*</span></label>
+            <textarea id="message" name="message" placeholder="Write your message here..."></textarea>
+            <div class="error">Please enter a message (at least 10 characters).</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer>
+    <div class="container footer-top">
+      <a href="#hero" class="logo" style="color:#fff; font-size:1.4rem;">Clélia<span style="color:#60a5fa;"> Seyfried</span></a>
+      <div class="socials">
+        <a href="https://www.linkedin.com/in/clélia-seyfried-86bb7b8a" target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+        <a href="mailto:clelia.seyfried@gmail.com" target="_blank" rel="noopener" aria-label="Email">✉</a>
+      </div>
+      <a href="mailto:clelia.seyfried@gmail.com" class="footer-email">clelia.seyfried@gmail.com</a>
+    </div>
+    <div class="container copyright">
+      © <span id="year"></span> Clélia Seyfried. All rights reserved. Built with care.
+    </div>
+  </footer>
+
+  <script>
+    // ----- Mobile nav toggle -----
+    const navToggle = document.getElementById("navToggle");
+    const navLinks = document.getElementById("navLinks");
+    navToggle.addEventListener("click", () => navLinks.classList.toggle("open"));
+    navLinks.querySelectorAll("a").forEach(link =>
+      link.addEventListener("click", () => navLinks.classList.remove("open"))
+    );
+
+    // ----- Dark mode toggle -----
+    const themeToggle = document.getElementById("themeToggle");
+    const root = document.documentElement;
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        root.setAttribute("data-theme", "dark");
+        themeToggle.textContent = "☀️";
+      } else {
+        root.removeAttribute("data-theme");
+        themeToggle.textContent = "🌙";
+      }
+    }
+
+    // On load: use saved choice, else follow the OS preference.
+    const savedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(savedTheme || (prefersDark ? "dark" : "light"));
+
+    themeToggle.addEventListener("click", () => {
+      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      applyTheme(next);
+      localStorage.setItem("theme", next);
+    });
+
+    // ----- Current year in footer -----
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // ----- Animate skill bars when they scroll into view -----
+    const bars = document.querySelectorAll(".bar-fill");
+    const barObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.width = entry.target.dataset.width;
+          barObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    bars.forEach(bar => barObserver.observe(bar));
+
+    // ----- Contact form validation -----
+    const form = document.getElementById("contactForm");
+    const success = document.getElementById("formSuccess");
+
+    function setInvalid(fieldId, invalid) {
+      document.getElementById(fieldId).classList.toggle("invalid", invalid);
+    }
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      let valid = true;
+
+      const name = form.name.value.trim();
+      const email = form.email.value.trim();
+      const message = form.message.value.trim();
+
+      if (name === "") { setInvalid("field-name", true); valid = false; }
+      else setInvalid("field-name", false);
+
+      if (!isValidEmail(email)) { setInvalid("field-email", true); valid = false; }
+      else setInvalid("field-email", false);
+
+      if (message.length < 10) { setInvalid("field-message", true); valid = false; }
+      else setInvalid("field-message", false);
+
+      if (!valid) {
+        success.classList.remove("show");
+        return;
+      }
+
+      // Validation passed — send the message to Formspree (real email delivery).
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending...";
+      try {
+        const response = await fetch(form.action, {
+          method: "POST",
+          body: new FormData(form),
+          headers: { Accept: "application/json" }
+        });
+
+        if (response.ok) {
+          success.textContent = "✅ Thanks! Your message has been sent. I'll be in touch soon.";
+          success.style.background = "#ecfdf5";
+          success.style.borderColor = "#a7f3d0";
+          success.style.color = "#065f46";
+          success.classList.add("show");
+          form.reset();
+          success.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          throw new Error("Form submission failed");
+        }
+      } catch (err) {
+        success.textContent = "⚠️ Sorry, something went wrong. Please email me directly at clelia.seyfried@gmail.com.";
+        success.style.background = "#fef2f2";
+        success.style.borderColor = "#fecaca";
+        success.style.color = "#991b1b";
+        success.classList.add("show");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Send Message";
+      }
+    });
+
+    // Clear invalid state as the user corrects a field
+    ["name", "email", "message"].forEach(id => {
+      form[id].addEventListener("input", () => setInvalid("field-" + id, false));
+    });
+  </script>
+</body>
+</html>
