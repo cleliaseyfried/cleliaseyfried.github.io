@@ -98,6 +98,28 @@
     .clear-filter { font-size:0.78rem; color:var(--danger); background:transparent; border:none; cursor:pointer; padding:4px 6px; }
     .clear-filter:hover { text-decoration: underline; }
 
+    /* View toggle (Active / Archive) + archive-completed action */
+    .viewbar { display:flex; align-items:center; gap:8px; padding: 8px 28px 0; flex-wrap:wrap; }
+    .view-toggle { display:flex; gap:6px; }
+    .view-btn { font-family:inherit; font-size:0.85rem; font-weight:600; padding:7px 14px; border-radius:10px;
+      border:1px solid var(--border); background:var(--soft); color:var(--muted); cursor:pointer; transition:all 0.15s; }
+    .view-btn:hover { color: var(--ink); }
+    .view-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .viewbar .spacer { flex:1; }
+    .archive-completed-btn { font-family:inherit; font-size:0.82rem; font-weight:600; padding:7px 12px; border-radius:10px;
+      border:none; background:var(--accent-soft); color:var(--accent-dark); cursor:pointer; }
+    .archive-completed-btn:hover { filter: brightness(0.96); }
+    .archive-completed-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* Archive list */
+    .archive-group { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
+    .archive-group-head { padding:10px 16px; background:var(--soft); font-weight:700; font-size:1rem; display:flex; justify-content:space-between; }
+    .archive-group-head .n { color:var(--muted); font-weight:600; font-size:0.85rem; }
+    .archive-item { display:flex; align-items:center; gap:10px; padding:9px 14px; border-top:1px solid var(--border); }
+    .archive-item .txt { flex:1; color:var(--muted); text-decoration:line-through; font-size:0.95rem; word-break:break-word; }
+    .archive-item .when { font-size:0.72rem; color:var(--muted); white-space:nowrap; }
+    .archive-item .tag { text-decoration:none; }
+
     .task-due { font-size:0.75rem; color:var(--muted); margin-top:3px; display:inline-flex; align-items:center; gap:4px; }
     .task-due.overdue { color: var(--danger); font-weight:600; }
     .task-due.soon { color: #d97706; font-weight:600; }
@@ -205,6 +227,14 @@
         </div>
         <span class="hint">Click a task to edit · click a section title to rename · tags can include emoji · set a due date to export to your calendar.</span>
       </div>
+      <div class="viewbar">
+        <div class="view-toggle">
+          <button class="view-btn active" id="viewActive" data-view="active">📋 Active</button>
+          <button class="view-btn" id="viewArchive" data-view="archive">📦 Archive</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="archive-completed-btn" id="archiveCompletedBtn">Archive completed →</button>
+      </div>
       <div class="tagbar" id="tagbar"></div>
       <div class="sections" id="sections"></div>
     </div>
@@ -233,6 +263,7 @@
     let snapshot = null, toastTimer = null;
     let user = null;
     let tagFilter = null;    // active tag filter (per bucket view)
+    let view = "active";     // "active" | "archive"
     const saveTimers = {};   // debounce per bucket
 
     // ============ Elements ============
@@ -257,6 +288,9 @@
     const exportBtn = document.getElementById("exportBtn");
     const tagbar = document.getElementById("tagbar");
     const sectionsEl = document.getElementById("sections");
+    const viewActiveBtn = document.getElementById("viewActive");
+    const viewArchiveBtn = document.getElementById("viewArchive");
+    const archiveCompletedBtn = document.getElementById("archiveCompletedBtn");
     const toast = document.getElementById("toast");
     const toastMsg = document.getElementById("toastMsg");
     const toastUndo = document.getElementById("toastUndo");
@@ -285,7 +319,7 @@
         growth: ["Career Growth", "Personal Projects", "Learning"],
         life:   ["Home", "Health", "Trips"],
       };
-      return { sections: seeds[b].map(makeSection) };
+      return { sections: seeds[b].map(makeSection), archive: [] };
     }
 
     // ============ Auth ============
@@ -343,6 +377,7 @@
       for (const b of BUCKETS) {
         if (byBucket[b] && Array.isArray(byBucket[b].sections)) {
           data[b] = byBucket[b];
+          if (!Array.isArray(data[b].archive)) data[b].archive = []; // backfill for older rows
         } else {
           data[b] = seedBucket(b);
           await saveBucket(b, true); // create the row immediately
@@ -447,6 +482,49 @@
       return s ? s.tasks.find(t => t.id === tid) : null;
     }
 
+    // ---- Archive ----
+    function archiveCompleted() {
+      const b = cur();
+      if (!Array.isArray(b.archive)) b.archive = [];
+      let moved = 0;
+      b.sections.forEach(sec => {
+        const done = sec.tasks.filter(t => t.done);
+        done.forEach(t => {
+          b.archive.unshift({ ...t, sectionTitle: sec.title, archivedAt: new Date().toISOString() });
+          moved++;
+        });
+        sec.tasks = sec.tasks.filter(t => !t.done);
+      });
+      if (moved === 0) { showToast("No completed tasks to archive"); return; }
+      takeSnapshot();
+      persist(); render(); showToast(`Archived ${moved} task(s)`, true);
+    }
+
+    function restoreArchived(id) {
+      const b = cur();
+      const idx = b.archive.findIndex(a => a.id === id);
+      if (idx === -1) return;
+      const item = b.archive[idx];
+      // find its original section by title, or recreate it
+      let sec = b.sections.find(s => s.title === item.sectionTitle);
+      if (!sec) { sec = makeSection(item.sectionTitle || "Restored"); b.sections.push(sec); }
+      const { sectionTitle, archivedAt, ...task } = item;
+      task.done = false;
+      sec.tasks.unshift(task);
+      b.archive.splice(idx, 1);
+      persist(); render(); showToast("Task restored");
+    }
+
+    function deleteArchived(id) {
+      const b = cur();
+      const item = b.archive.find(a => a.id === id);
+      if (!item) return;
+      if (!confirm(`Permanently delete "${item.text}" from the archive?`)) return;
+      takeSnapshot();
+      b.archive = b.archive.filter(a => a.id !== id);
+      persist(); render(); showToast("Deleted from archive", true);
+    }
+
     // ============ Calendar export (.ics) ============
     function icsEscape(s) {
       return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
@@ -510,6 +588,24 @@
         sectionSelect.appendChild(o);
       });
 
+      // view toggle state
+      viewActiveBtn.classList.toggle("active", view === "active");
+      viewArchiveBtn.classList.toggle("active", view === "archive");
+      const archiveCount = (cur().archive || []).length;
+      viewArchiveBtn.textContent = `📦 Archive${archiveCount ? " (" + archiveCount + ")" : ""}`;
+
+      if (view === "archive") {
+        tagbar.style.display = "none";
+        archiveCompletedBtn.style.display = "none";
+        renderArchive();
+        return;
+      }
+
+      archiveCompletedBtn.style.display = "";
+      const completedCount = cur().sections.reduce((n, s) => n + s.tasks.filter(t => t.done).length, 0);
+      archiveCompletedBtn.disabled = completedCount === 0;
+      archiveCompletedBtn.textContent = completedCount ? `Archive ${completedCount} completed →` : "Archive completed →";
+
       renderTagBar();
 
       sectionsEl.innerHTML = "";
@@ -517,7 +613,52 @@
         sectionsEl.innerHTML = `<div class="empty"><span class="emoji">🗂️</span>No sections yet. Create one to get started.</div>`;
         return;
       }
-      cur().sections.forEach(s => sectionsEl.appendChild(renderSection(s)));
+      cur().sections.forEach(s => {
+        const el = renderSection(s);
+        if (el.nodeType === 1) sectionsEl.appendChild(el); // skip filtered-out comment nodes
+      });
+    }
+
+    // Archive view: completed tasks grouped by the section they came from.
+    function renderArchive() {
+      const archive = cur().archive || [];
+      sectionsEl.innerHTML = "";
+      if (archive.length === 0) {
+        sectionsEl.innerHTML = `<div class="empty"><span class="emoji">📦</span>Archive is empty. Complete some tasks, then hit "Archive completed".</div>`;
+        return;
+      }
+      // group by original section title
+      const groups = {};
+      archive.forEach(a => { (groups[a.sectionTitle] = groups[a.sectionTitle] || []).push(a); });
+
+      Object.keys(groups).forEach(title => {
+        const items = groups[title];
+        const g = document.createElement("div"); g.className = "archive-group";
+        const head = document.createElement("div"); head.className = "archive-group-head";
+        head.innerHTML = `<span>${escapeHtml(title)}</span><span class="n">${items.length} archived</span>`;
+        g.appendChild(head);
+
+        items.forEach(a => {
+          const row = document.createElement("div"); row.className = "archive-item";
+          const txt = document.createElement("span"); txt.className = "txt"; txt.textContent = a.text;
+          if (a.tags && a.tags.length) {
+            a.tags.forEach(tg => { const el = document.createElement("span"); el.className = "tag"; el.textContent = tg; el.style.marginLeft="6px"; txt.appendChild(el); });
+          }
+          const when = document.createElement("span"); when.className = "when";
+          when.textContent = "✓ " + new Date(a.archivedAt).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+          const restore = document.createElement("button"); restore.className = "icon-btn"; restore.textContent = "↩️"; restore.title = "Restore to active";
+          restore.addEventListener("click", () => restoreArchived(a.id));
+          const del = document.createElement("button"); del.className = "icon-btn"; del.textContent = "🗑️"; del.title = "Delete permanently";
+          del.addEventListener("click", () => deleteArchived(a.id));
+          row.append(txt, when, restore, del);
+          g.appendChild(row);
+        });
+        sectionsEl.appendChild(g);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
     }
 
     // All distinct tags used in the current bucket.
@@ -642,8 +783,11 @@
 
     // ============ Events ============
     tabs.forEach(t => t.addEventListener("click", () => {
-      bucket = t.dataset.bucket; editingTaskId = null; snapshot = null; tagFilter = null; render();
+      bucket = t.dataset.bucket; editingTaskId = null; snapshot = null; tagFilter = null; view = "active"; render();
     }));
+    viewActiveBtn.addEventListener("click", () => { view = "active"; render(); });
+    viewArchiveBtn.addEventListener("click", () => { view = "archive"; tagFilter = null; render(); });
+    archiveCompletedBtn.addEventListener("click", archiveCompleted);
     addTaskBtn.addEventListener("click", addTask);
     exportBtn.addEventListener("click", exportICS);
     taskInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
