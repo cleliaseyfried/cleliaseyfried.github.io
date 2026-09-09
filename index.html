@@ -436,7 +436,11 @@
       border: 1.5px solid var(--border);
       border-radius: 10px;
       background: var(--bg);
+      color: var(--ink);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .field input::placeholder, .field textarea::placeholder {
+      color: var(--muted);
     }
     .field input:focus, .field textarea:focus {
       outline: none;
