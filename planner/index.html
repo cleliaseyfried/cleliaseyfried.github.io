@@ -83,6 +83,24 @@
     .btn-ghost { background: var(--soft); color: var(--ink); font-size:0.85rem; padding:9px 14px; }
     .btn-ghost:hover { background: var(--border); }
     .hint { font-size: 0.8rem; color: var(--muted); }
+    .date-input { min-width: 150px; cursor: pointer; }
+
+    /* Tag filter bar */
+    .tagbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding: 4px 28px 0; }
+    .tagbar-label { font-size:0.8rem; color:var(--muted); }
+    .filter-chip {
+      font-family:inherit; font-size:0.78rem; font-weight:600; padding:4px 12px; border-radius:999px;
+      background:var(--soft); color:var(--ink); border:1px solid var(--border); cursor:pointer;
+      transition:background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .filter-chip:hover { border-color: var(--accent); }
+    .filter-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .clear-filter { font-size:0.78rem; color:var(--danger); background:transparent; border:none; cursor:pointer; padding:4px 6px; }
+    .clear-filter:hover { text-decoration: underline; }
+
+    .task-due { font-size:0.75rem; color:var(--muted); margin-top:3px; display:inline-flex; align-items:center; gap:4px; }
+    .task-due.overdue { color: var(--danger); font-weight:600; }
+    .task-due.soon { color: #d97706; font-weight:600; }
 
     .sections {
       padding: 8px 28px 22px;
@@ -181,10 +199,13 @@
         </div>
         <div class="row">
           <input type="text" id="tagsInput" class="tags-input" placeholder="Tags (comma separated), e.g. ✈️ travel, 🔥 urgent" autocomplete="off" />
+          <input type="date" id="dueInput" class="date-input" title="Due date (optional)" />
           <button id="addSectionBtn" class="btn btn-ghost">＋ New section</button>
+          <button id="exportBtn" class="btn btn-ghost" title="Export dated tasks to calendar">📅 Export .ics</button>
         </div>
-        <span class="hint">Click a task to edit · click a section title to rename · tags can include emoji. Everything syncs to the cloud.</span>
+        <span class="hint">Click a task to edit · click a section title to rename · tags can include emoji · set a due date to export to your calendar.</span>
       </div>
+      <div class="tagbar" id="tagbar"></div>
       <div class="sections" id="sections"></div>
     </div>
   </div>
@@ -211,6 +232,7 @@
     let editingTaskId = null;
     let snapshot = null, toastTimer = null;
     let user = null;
+    let tagFilter = null;    // active tag filter (per bucket view)
     const saveTimers = {};   // debounce per bucket
 
     // ============ Elements ============
@@ -229,8 +251,11 @@
     const taskInput = document.getElementById("taskInput");
     const tagsInput = document.getElementById("tagsInput");
     const sectionSelect = document.getElementById("sectionSelect");
+    const dueInput = document.getElementById("dueInput");
     const addTaskBtn = document.getElementById("addTaskBtn");
     const addSectionBtn = document.getElementById("addSectionBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const tagbar = document.getElementById("tagbar");
     const sectionsEl = document.getElementById("sections");
     const toast = document.getElementById("toast");
     const toastMsg = document.getElementById("toastMsg");
@@ -242,6 +267,17 @@
     const cur = () => data[bucket];
     const parseTags = (s) => s.split(",").map(x => x.trim()).filter(Boolean).slice(0, 8);
     function flash(el){ el.style.borderColor="var(--danger)"; setTimeout(()=>el.style.borderColor="",900); }
+
+    // ---- date helpers ----
+    function daysUntil(dateStr) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(dateStr + "T00:00:00");
+      return Math.round((d - today) / 86400000);
+    }
+    function formatDue(dateStr) {
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
 
     function seedBucket(b) {
       const seeds = {
@@ -364,8 +400,8 @@
       let sid = sectionSelect.value;
       if (!sid) { const s = makeSection("General"); cur().sections.push(s); sid = s.id; }
       const section = cur().sections.find(s => s.id === sid);
-      section.tasks.unshift({ id: uid(), text, done: false, tags: parseTags(tagsInput.value) });
-      taskInput.value = ""; tagsInput.value = "";
+      section.tasks.unshift({ id: uid(), text, done: false, tags: parseTags(tagsInput.value), due: dueInput.value || null });
+      taskInput.value = ""; tagsInput.value = ""; dueInput.value = "";
       persist(); render(); taskInput.focus();
     }
     function addSection() {
@@ -411,6 +447,56 @@
       return s ? s.tasks.find(t => t.id === tid) : null;
     }
 
+    // ============ Calendar export (.ics) ============
+    function icsEscape(s) {
+      return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+    }
+    function exportICS() {
+      const events = [];
+      const bucketEmoji = { work: "💼", growth: "🚀", life: "🌿" };
+      BUCKETS.forEach(b => {
+        (data[b].sections || []).forEach(sec => {
+          sec.tasks.forEach(t => {
+            if (!t.due) return;
+            const d = t.due.replace(/-/g, "");        // YYYYMMDD
+            const dt = new Date(t.due + "T00:00:00");
+            const next = new Date(dt.getTime() + 86400000);
+            const dtEnd = next.toISOString().slice(0,10).replace(/-/g,"");
+            const tagStr = (t.tags && t.tags.length) ? " " + t.tags.join(" ") : "";
+            const status = t.done ? "[Done] " : "";
+            events.push([
+              "BEGIN:VEVENT",
+              "UID:" + t.id + "@planner",
+              "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g,"").slice(0,15) + "Z",
+              "DTSTART;VALUE=DATE:" + d,
+              "DTEND;VALUE=DATE:" + dtEnd,
+              "SUMMARY:" + icsEscape(`${bucketEmoji[b]} ${status}${t.text}${tagStr}`),
+              "DESCRIPTION:" + icsEscape(`Planner · ${b} · ${sec.title}`),
+              "END:VEVENT",
+            ].join("\r\n"));
+          });
+        });
+      });
+
+      if (events.length === 0) { showToast("No tasks with a due date to export"); return; }
+
+      const ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//My Planner//EN",
+        "CALSCALE:GREGORIAN",
+        ...events,
+        "END:VCALENDAR",
+      ].join("\r\n");
+
+      const blob = new Blob([ics], { type: "text/calendar" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `planner-${new Date().toISOString().slice(0,10)}.ics`;
+      a.click(); URL.revokeObjectURL(url);
+      showToast(`Exported ${events.length} dated task(s) — open the file to import into your calendar`);
+    }
+
     // ============ Render ============
     function render() {
       body.dataset.bucket = bucket;
@@ -424,6 +510,8 @@
         sectionSelect.appendChild(o);
       });
 
+      renderTagBar();
+
       sectionsEl.innerHTML = "";
       if (cur().sections.length === 0) {
         sectionsEl.innerHTML = `<div class="empty"><span class="emoji">🗂️</span>No sections yet. Create one to get started.</div>`;
@@ -431,7 +519,51 @@
       }
       cur().sections.forEach(s => sectionsEl.appendChild(renderSection(s)));
     }
+
+    // All distinct tags used in the current bucket.
+    function bucketTags() {
+      const set = new Set();
+      cur().sections.forEach(s => s.tasks.forEach(t => (t.tags || []).forEach(tg => set.add(tg))));
+      return [...set].sort();
+    }
+
+    function renderTagBar() {
+      const tags = bucketTags();
+      tagbar.innerHTML = "";
+      if (tags.length === 0) { tagbar.style.display = "none"; return; }
+      tagbar.style.display = "flex";
+
+      const label = document.createElement("span");
+      label.className = "tagbar-label"; label.textContent = "Filter:";
+      tagbar.appendChild(label);
+
+      tags.forEach(tg => {
+        const chip = document.createElement("button");
+        chip.className = "filter-chip" + (tagFilter === tg ? " active" : "");
+        chip.textContent = tg;
+        chip.addEventListener("click", () => {
+          tagFilter = (tagFilter === tg) ? null : tg;  // toggle
+          render();
+        });
+        tagbar.appendChild(chip);
+      });
+
+      if (tagFilter) {
+        const clear = document.createElement("button");
+        clear.className = "clear-filter"; clear.textContent = "✕ clear";
+        clear.addEventListener("click", () => { tagFilter = null; render(); });
+        tagbar.appendChild(clear);
+      }
+    }
     function renderSection(section) {
+      // Apply the active tag filter to this section's tasks.
+      const shown = tagFilter
+        ? section.tasks.filter(t => (t.tags || []).includes(tagFilter))
+        : section.tasks;
+
+      // When filtering, skip sections that have nothing matching.
+      if (tagFilter && shown.length === 0) return document.createComment("filtered-out");
+
       const wrap = document.createElement("div"); wrap.className = "section";
       const head = document.createElement("div"); head.className = "section-head";
       const title = document.createElement("input"); title.className = "section-title"; title.value = section.title;
@@ -444,11 +576,11 @@
       head.append(title, count, del); wrap.appendChild(head);
 
       const ul = document.createElement("ul"); ul.className = "section-tasks";
-      if (section.tasks.length === 0) {
+      if (shown.length === 0) {
         const li = document.createElement("li"); li.className = "empty"; li.style.padding = "14px"; li.textContent = "No tasks here yet.";
         ul.appendChild(li);
       } else {
-        section.tasks.forEach(t => ul.appendChild(renderTask(section.id, t)));
+        shown.forEach(t => ul.appendChild(renderTask(section.id, t)));
       }
       wrap.appendChild(ul); return wrap;
     }
@@ -471,9 +603,30 @@
         const text = document.createElement("div"); text.className = "task-text"; text.textContent = task.text; text.title = "Click to edit";
         text.addEventListener("click", () => { editingTaskId = task.id; render(); });
         main.appendChild(text);
+
+        // due date (with overdue / due-soon coloring)
+        if (task.due) {
+          const dueEl = document.createElement("span"); dueEl.className = "task-due";
+          const days = daysUntil(task.due);
+          let prefix = "📅 ";
+          if (!task.done) {
+            if (days < 0) { dueEl.classList.add("overdue"); prefix = "⚠️ "; }
+            else if (days <= 2) { dueEl.classList.add("soon"); prefix = "⏳ "; }
+          }
+          dueEl.textContent = prefix + formatDue(task.due) + (
+            task.done ? "" : days < 0 ? ` (${-days}d overdue)` : days === 0 ? " (today)" : days === 1 ? " (tomorrow)" : ""
+          );
+          main.appendChild(dueEl);
+        }
+
         if (task.tags && task.tags.length) {
           const tagWrap = document.createElement("div"); tagWrap.className = "task-tags";
-          task.tags.forEach(tg => { const el = document.createElement("span"); el.className = "tag"; el.textContent = tg; tagWrap.appendChild(el); });
+          task.tags.forEach(tg => {
+            const el = document.createElement("span"); el.className = "tag"; el.textContent = tg;
+            el.style.cursor = "pointer"; el.title = "Filter by this tag";
+            el.addEventListener("click", () => { tagFilter = tg; render(); });
+            tagWrap.appendChild(el);
+          });
           main.appendChild(tagWrap);
         }
       }
@@ -489,11 +642,13 @@
 
     // ============ Events ============
     tabs.forEach(t => t.addEventListener("click", () => {
-      bucket = t.dataset.bucket; editingTaskId = null; snapshot = null; render();
+      bucket = t.dataset.bucket; editingTaskId = null; snapshot = null; tagFilter = null; render();
     }));
     addTaskBtn.addEventListener("click", addTask);
+    exportBtn.addEventListener("click", exportICS);
     taskInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
     tagsInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+    dueInput.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
     addSectionBtn.addEventListener("click", addSection);
     toastUndo.addEventListener("click", () => { undo(); toast.classList.remove("show"); });
     document.addEventListener("keydown", e => {
