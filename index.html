@@ -268,7 +268,9 @@
     .about-text p { margin-bottom: 18px; color: var(--ink); opacity: 0.85; }
     .about-highlights {
       display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
+      align-content: start;
     }
     .highlight-card {
       background: var(--bg);
@@ -539,7 +541,7 @@
       .hero .tagline { margin-left: auto; margin-right: auto; }
       .hero-actions { justify-content: center; }
       .avatar { grid-row: 1; margin-bottom: 24px; width: 200px; height: 200px; font-size: 3.5rem; }
-      .about-highlights { grid-template-columns: repeat(3, 1fr); }
+      .about-highlights { grid-template-columns: repeat(2, 1fr); }
 
       .nav-links {
         position: fixed;
@@ -640,6 +642,11 @@
             <span class="big">3</span>
             <h3>Domains</h3>
             <p>Alexa → Marketing Tech → Books Compliance.</p>
+          </div>
+          <div class="highlight-card">
+            <span class="big">ML</span>
+            <h3>Science Depth</h3>
+            <p>Causal inference &amp; Bayesian RCT; deep science partnership.</p>
           </div>
         </div>
       </div>
