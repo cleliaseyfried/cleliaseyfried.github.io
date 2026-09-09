@@ -19,9 +19,9 @@
     body {
       min-height: 100vh; font-family: "Inter","Segoe UI",system-ui,-apple-system,sans-serif;
       color: var(--ink); background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-      padding: 32px 16px; transition: background 0.4s ease;
+      padding: 18px 16px; transition: background 0.4s ease;
     }
-    .app { width:100%; max-width:720px; margin:0 auto; background:var(--surface);
+    .app { width:100%; max-width:1080px; margin:0 auto; background:var(--surface);
       border-radius:20px; box-shadow:var(--shadow); overflow:hidden; }
 
     /* ---- Login gate ---- */
@@ -49,9 +49,9 @@
     .gate .msg.err { color: var(--danger); }
     .hidden { display: none !important; }
 
-    header { padding: 22px 28px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-    header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
-    header p { color: var(--muted); margin-top: 4px; font-size: 0.9rem; }
+    header { padding: 16px 28px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+    header p { color: var(--muted); margin-top: 2px; font-size: 0.88rem; }
     .header-right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
     .sync { font-size: 0.75rem; color: var(--muted); }
     .sync.saving { color: #f59e0b; }
@@ -60,7 +60,7 @@
       font-size:0.78rem; padding:5px 10px; border-radius:8px; cursor:pointer; }
     .signout:hover { color: var(--ink); border-color: var(--muted); }
 
-    .tabs { display:flex; gap:8px; padding:18px 28px 0; }
+    .tabs { display:flex; gap:8px; padding:12px 28px 0; }
     .tab { flex:1; font-family:inherit; font-size:1rem; font-weight:600; padding:12px 8px;
       border:none; border-radius:12px 12px 0 0; background:var(--soft); color:var(--muted);
       cursor:pointer; transition:background 0.2s,color 0.2s; }
@@ -68,7 +68,7 @@
     .tab.active { background: var(--accent); color: #fff; }
     .tab-body { border-top: 3px solid var(--accent); }
 
-    .bar { padding: 18px 28px 6px; display:flex; flex-direction:column; gap:12px; }
+    .bar { padding: 14px 28px 6px; display:flex; flex-direction:column; gap:10px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     input, select { font-family:inherit; font-size:0.95rem; padding:11px 14px; border:2px solid var(--border);
       border-radius:11px; outline:none; color:var(--ink); background:var(--surface);
@@ -84,8 +84,14 @@
     .btn-ghost:hover { background: var(--border); }
     .hint { font-size: 0.8rem; color: var(--muted); }
 
-    .sections { padding: 8px 28px 20px; }
-    .section { margin-bottom:22px; border:1px solid var(--border); border-radius:var(--radius);
+    .sections {
+      padding: 8px 28px 22px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    .section { border:1px solid var(--border); border-radius:var(--radius);
       overflow:hidden; animation: fadeIn 0.3s ease both; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(-6px);} to{opacity:1;transform:none;} }
     .section-head { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--accent-soft); }
@@ -117,7 +123,7 @@
     .icon-btn { background:transparent; border:none; cursor:pointer; font-size:0.95rem; padding:5px 7px;
       border-radius:7px; transition:background 0.15s; }
     .icon-btn:hover { background: var(--border); }
-    .empty { text-align:center; color:var(--muted); padding:24px; font-size:0.95rem; }
+    .empty { text-align:center; color:var(--muted); padding:24px; font-size:0.95rem; grid-column: 1 / -1; }
     .empty .emoji { font-size:2.4rem; display:block; margin-bottom:8px; }
 
     .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(140%);
