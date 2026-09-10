@@ -182,6 +182,9 @@
     .task.removing { opacity:0; transform: translateX(30px); }
     .task[draggable="true"] { cursor: grab; }
     .task.dragging { opacity: 0.4; }
+    /* dragging a task onto another task nests it as a subtask */
+    .task.nest-target { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+    .task.nest-target .task-text::after { content: " ⤵ drop to nest"; font-size: 0.72rem; color: var(--accent-dark); font-weight: 600; }
     /* highlight a section that's a valid drop target while dragging over it */
     .section.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; }
     .section.drop-target .section-head { background: var(--accent); color: #fff; }
@@ -550,6 +553,28 @@
       return { done, total: subs.length, pct: subs.length ? Math.round(done / subs.length * 100) : 0 };
     }
 
+    // ---- Drag & drop: nest a task as a subtask of another task ----
+    function nestTaskUnder(fromSid, dragId, targetSid, targetId) {
+      if (dragId === targetId) return;
+      const fromSec = cur().sections.find(s => s.id === fromSid);
+      const target = findTask(targetSid, targetId);
+      if (!fromSec || !target) return;
+      const idx = fromSec.tasks.findIndex(t => t.id === dragId);
+      if (idx === -1) return;
+      const dragged = fromSec.tasks[idx];
+
+      if (!Array.isArray(target.subtasks)) target.subtasks = [];
+      // the dragged task becomes a subtask
+      target.subtasks.push({ id: uid(), text: dragged.text, done: !!dragged.done });
+      // if it had its own subtasks, merge them in too (nothing lost)
+      (dragged.subtasks || []).forEach(st => target.subtasks.push({ id: uid(), text: st.text, done: !!st.done }));
+
+      fromSec.tasks.splice(idx, 1);  // remove the original
+      expanded.add(target.id);       // show the result
+      takeSnapshot();
+      persist(); render(); showToast(`Nested under "${target.text}"`, true);
+    }
+
     // ---- Drag & drop: move a task to another section ----
     function moveTask(fromSid, taskId, toSid) {
       if (fromSid === toSid) return;
@@ -834,6 +859,26 @@
           li.classList.add("dragging");
         });
         li.addEventListener("dragend", () => li.classList.remove("dragging"));
+
+        // This task can also RECEIVE a drop → nest the dragged task under it.
+        li.addEventListener("dragover", e => {
+          e.preventDefault();
+          e.stopPropagation();               // don't let the section also handle it
+          e.dataTransfer.dropEffect = "move";
+          if (!li.classList.contains("dragging")) li.classList.add("nest-target");
+        });
+        li.addEventListener("dragleave", e => {
+          if (!li.contains(e.relatedTarget)) li.classList.remove("nest-target");
+        });
+        li.addEventListener("drop", e => {
+          e.preventDefault();
+          e.stopPropagation();               // takes priority over section drop
+          li.classList.remove("nest-target");
+          try {
+            const { fromSid, taskId } = JSON.parse(e.dataTransfer.getData("text/plain"));
+            nestTaskUnder(fromSid, taskId, sid, task.id);
+          } catch {}
+        });
       }
 
       // ---- top row ----
