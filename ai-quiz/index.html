@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Usage Quiz</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg1: #0f766e;
+    --bg2: #7c3aed;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --ink-dim: #6b7280;
+    --accent: #7c3aed;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --radius: 16px;
+    --shadow: 0 12px 40px rgba(0,0,0,0.18);
+  }
+
+  body {
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    width: 100%;
+    max-width: 640px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  /* Screen switching */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.35s ease; }
+
+  h1 { font-size: 1.9rem; margin-bottom: 8px; text-align: center; }
+  .desc { color: var(--ink-dim); text-align: center; margin-bottom: 24px; line-height: 1.5; }
+
+  .meta {
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.05rem;
+  }
+  .meta strong { color: var(--accent); }
+
+  .options-config { margin-bottom: 22px; }
+  .config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 4px;
+    border-bottom: 1px solid #eee;
+  }
+  .config-row:last-child { border-bottom: none; }
+  .config-label { font-weight: 600; }
+  .config-hint { font-size: 0.8rem; color: var(--ink-dim); }
+
+  .seg { display: inline-flex; background: #eef2f7; border-radius: 10px; overflow: hidden; }
+  .seg button {
+    border: none; background: transparent; padding: 8px 14px;
+    cursor: pointer; font-weight: 600; color: var(--ink-dim);
+    font-size: 0.9rem; transition: background 0.15s, color 0.15s;
+  }
+  .seg button.active { background: var(--accent); color: #fff; }
+
+  /* Toggle switch */
+  .switch { position: relative; width: 52px; height: 28px; display: inline-block; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 22px; width: 22px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: transform 0.2s;
+  }
+  .switch input:checked + .slider { background: var(--correct); }
+  .switch input:checked + .slider::before { transform: translateX(24px); }
+
+  button.primary {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s;
+  }
+  button.primary:hover { box-shadow: 0 6px 20px rgba(124,58,237,0.45); }
+  button.primary:active { transform: scale(0.98); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Question header */
+  .q-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; font-size: 0.95rem; color: var(--ink-dim);
+  }
+  .timer { font-weight: 700; color: var(--accent); }
+  .timer.warn { color: var(--wrong); animation: pulse 1s ease-in-out infinite; }
+
+  .progress {
+    height: 8px; background: #e5e7eb; border-radius: 999px;
+    overflow: hidden; margin-bottom: 22px;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, var(--bg1), var(--bg2));
+    border-radius: 999px; transition: width 0.4s ease;
+  }
+
+  .q-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; line-height: 1.4; }
+
+  .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+  .option {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1.02rem;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .option:hover:not(.locked) { border-color: var(--accent); background: #f8f5ff; }
+  .option.selected { border-color: var(--accent); background: #f1eaff; }
+  .option .letter {
+    flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #eef2f7; color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .option.selected .letter { background: var(--accent); color: #fff; }
+  .option.locked { cursor: default; }
+  .option.correct { border-color: var(--correct); background: var(--correct-bg); }
+  .option.correct .letter { background: var(--correct); color: #fff; }
+  .option.wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+  .option.wrong .letter { background: var(--wrong); color: #fff; }
+  .option .mark { margin-left: auto; font-weight: 700; }
+
+  .feedback {
+    padding: 14px 16px; border-radius: 12px; margin-bottom: 18px;
+    display: none; animation: fadeIn 0.3s ease; line-height: 1.5;
+  }
+  .feedback.show { display: block; }
+  .feedback.good { background: var(--correct-bg); border-left: 4px solid var(--correct); }
+  .feedback.bad { background: var(--wrong-bg); border-left: 4px solid var(--wrong); }
+  .feedback .fb-title { font-weight: 700; margin-bottom: 4px; }
+  .feedback .fb-exp { font-size: 0.92rem; color: #374151; }
+
+  .score-pill {
+    text-align: center; font-size: 0.9rem; color: var(--ink-dim); margin-top: 14px;
+  }
+  .score-pill strong { color: var(--accent); }
+
+  /* Results */
+  .result-score { text-align: center; margin-bottom: 8px; }
+  .result-score .big { font-size: 3.2rem; font-weight: 800; color: var(--accent); }
+  .result-pct { text-align: center; font-size: 1.2rem; color: var(--ink-dim); margin-bottom: 6px; }
+  .result-msg { text-align: center; font-size: 1.4rem; font-weight: 700; margin-bottom: 24px; }
+
+  .review-title { font-weight: 700; margin: 8px 0 12px; font-size: 1.05rem; }
+  .review-item {
+    border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .review-item .rq { font-weight: 600; margin-bottom: 8px; }
+  .review-item .ra { font-size: 0.92rem; margin: 3px 0; }
+  .review-item .ra .tag { font-weight: 700; }
+  .tag.ok { color: var(--correct); }
+  .tag.no { color: var(--wrong); }
+  .badge { float: right; font-size: 1.2rem; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+  @media (max-width: 480px) {
+    .card { padding: 22px; }
+    h1 { font-size: 1.6rem; }
+    .q-text { font-size: 1.15rem; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- ============ START SCREEN ============ -->
+  <section class="screen active" id="startScreen">
+    <h1>🤖 AI Usage Quiz</h1>
+    <p class="desc">How well do you understand using AI tools like ChatGPT and other large language models? Each difficulty has its own set of questions on prompting, capabilities, limitations, and responsible use.</p>
+
+    <div class="meta">
+      <strong id="qCount">5</strong> questions at this difficulty · pick your settings below
+    </div>
+
+    <div class="options-config">
+      <div class="config-row">
+        <div>
+          <div class="config-label">Difficulty</div>
+          <div class="config-hint">Adjusts the timer length</div>
+        </div>
+        <div class="seg" id="difficultySeg">
+          <button data-diff="easy">Easy</button>
+          <button data-diff="medium" class="active">Medium</button>
+          <button data-diff="hard">Hard</button>
+        </div>
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">Timer</div>
+          <div class="config-hint">Countdown for the whole quiz</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="timerToggle" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">Shuffle questions & answers</div>
+          <div class="config-hint">Randomize order each attempt</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="shuffleToggle" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button class="primary" id="startBtn">Start Quiz →</button>
+  </section>
+
+  <!-- ============ QUESTION SCREEN ============ -->
+  <section class="screen" id="quizScreen">
+    <div class="q-top">
+      <span id="qProgress">Question 1 of 10</span>
+      <span class="timer" id="timerDisplay">05:00</span>
+    </div>
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="q-text" id="questionText"></div>
+    <div class="options" id="optionsBox"></div>
+
+    <div class="feedback" id="feedback">
+      <div class="fb-title" id="fbTitle"></div>
+      <div class="fb-exp" id="fbExp"></div>
+    </div>
+
+    <button class="primary" id="submitBtn" disabled>Submit Answer</button>
+    <div class="score-pill">Score: <strong id="liveScore">0</strong></div>
+  </section>
+
+  <!-- ============ RESULTS SCREEN ============ -->
+  <section class="screen" id="resultScreen">
+    <h1>🎉 Quiz Complete!</h1>
+    <div class="result-score"><span class="big" id="finalScore">0 / 10</span></div>
+    <div class="result-pct" id="finalPct">0%</div>
+    <div class="result-msg" id="perfMsg"></div>
+
+    <div class="review-title">Question Review</div>
+    <div id="reviewBox"></div>
+
+    <button class="primary" id="restartBtn" style="margin-top:16px;">↻ Restart Quiz</button>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   QUIZ DATA — 10 questions about using AI tools (LLMs).
+   correct = index (0-3) into the ORIGINAL options array.
+   Mixed difficulty: easy → medium → hard.
+   ===================================================================== */
+const QUESTIONS = [
+  // ============================ EASY ============================
+  {
+    level: "easy",
+    q: "What does the 'GPT' in ChatGPT stand for?",
+    options: [
+      "Generative Pre-trained Transformer",
+      "General Purpose Technology",
+      "Guided Prompt Tool",
+      "Global Prediction Test"
+    ],
+    correct: 0,
+    explanation: "GPT stands for Generative Pre-trained Transformer — 'transformer' is the neural network architecture it's built on."
+  },
+  {
+    level: "easy",
+    q: "What is a 'prompt' when using an AI chatbot?",
+    options: [
+      "The AI's final answer",
+      "The instruction or question you give the AI",
+      "A subscription plan",
+      "An error message"
+    ],
+    correct: 1,
+    explanation: "A prompt is the input — the question, instruction, or context you provide — that the AI responds to."
+  },
+  {
+    level: "easy",
+    q: "Which of these is a well-known large language model (LLM)?",
+    options: ["Photoshop", "Claude", "Excel", "Firefox"],
+    correct: 1,
+    explanation: "Claude (by Anthropic) is an LLM. The others are a photo editor, a spreadsheet app, and a web browser."
+  },
+  {
+    level: "easy",
+    q: "What is generally the best first step if an AI's answer seems wrong?",
+    options: [
+      "Assume it must be correct",
+      "Verify it against a reliable source",
+      "Immediately delete your account",
+      "Send the same prompt 10 times"
+    ],
+    correct: 1,
+    explanation: "AI outputs can be inaccurate, so verifying against trustworthy sources is the responsible first move."
+  },
+  {
+    level: "easy",
+    q: "Which company created ChatGPT?",
+    options: ["OpenAI", "Adobe", "Spotify", "Oracle"],
+    correct: 0,
+    explanation: "ChatGPT was created by OpenAI, first released to the public in late 2022."
+  },
+
+  // ============================ MEDIUM ============================
+  {
+    level: "medium",
+    q: "In AI, what is a 'hallucination'?",
+    options: [
+      "When the AI refuses to answer",
+      "When the AI generates confident but false or made-up information",
+      "A visual glitch in the interface",
+      "When the AI runs out of memory"
+    ],
+    correct: 1,
+    explanation: "A hallucination is when a model produces plausible-sounding content that is factually wrong or fabricated, such as fake citations."
+  },
+  {
+    level: "medium",
+    q: "Why should you avoid pasting confidential or personal data into public AI tools?",
+    options: [
+      "It slows down the response",
+      "The data may be stored or used and could be exposed",
+      "It uses more of your word limit",
+      "The AI can't read long text"
+    ],
+    correct: 1,
+    explanation: "Inputs to public tools may be logged or used for training, creating privacy and security risks. Avoid sharing sensitive data."
+  },
+  {
+    level: "medium",
+    q: "Which prompting practice most reliably improves an AI's output?",
+    options: [
+      "Being vague so the AI stays creative",
+      "Giving clear context, specifics, and the desired format",
+      "Using all capital letters",
+      "Always asking in one short word"
+    ],
+    correct: 1,
+    explanation: "Clear context, specific instructions, and a stated output format give the model what it needs to respond usefully."
+  },
+  {
+    level: "medium",
+    q: "What is 'few-shot prompting'?",
+    options: [
+      "Limiting the AI to a few words",
+      "Giving the AI a few examples of the task in the prompt",
+      "Running the model only a few times a day",
+      "Asking several unrelated questions at once"
+    ],
+    correct: 1,
+    explanation: "Few-shot prompting includes a handful of example input/output pairs so the model can infer the pattern you want."
+  },
+  {
+    level: "medium",
+    q: "Why can an AI chatbot be unaware of very recent events?",
+    options: [
+      "It deletes old information nightly",
+      "Its knowledge is limited to its training data cutoff unless it can browse",
+      "It only reads paid news sites",
+      "It forgets anything older than a week"
+    ],
+    correct: 1,
+    explanation: "A model's knowledge is frozen at its training cutoff. Without live tools like web browsing, it won't know newer events."
+  },
+
+  // ============================ HARD ============================
+  {
+    level: "hard",
+    q: "What is a 'token' in the context of large language models?",
+    options: [
+      "A login security key",
+      "A chunk of text (like a word or word-piece) the model processes",
+      "A paid credit for premium features",
+      "A type of neural network layer"
+    ],
+    correct: 1,
+    explanation: "LLMs break text into tokens — often word fragments — and both input limits and pricing are typically measured in tokens."
+  },
+  {
+    level: "hard",
+    q: "What does RAG (Retrieval-Augmented Generation) do?",
+    options: [
+      "Compresses the model to run faster",
+      "Retrieves external documents and feeds them to the model to ground its answer",
+      "Randomly varies answers for creativity",
+      "Removes bias from training data automatically"
+    ],
+    correct: 1,
+    explanation: "RAG fetches relevant external information at query time and provides it as context, helping the model give grounded, up-to-date answers."
+  },
+  {
+    level: "hard",
+    q: "In LLM sampling, what does a higher 'temperature' setting do?",
+    options: [
+      "Makes output more random and varied",
+      "Makes output more deterministic and focused",
+      "Speeds up the model's response time",
+      "Increases the maximum context length"
+    ],
+    correct: 0,
+    explanation: "Higher temperature increases randomness, producing more diverse output; lower temperature makes responses more focused and predictable."
+  },
+  {
+    level: "hard",
+    q: "What is 'fine-tuning' a language model?",
+    options: [
+      "Adjusting the screen brightness of the chat app",
+      "Further training a pre-trained model on a specific dataset to specialize it",
+      "Manually editing each of the model's answers",
+      "Reducing the model's file size for download"
+    ],
+    correct: 1,
+    explanation: "Fine-tuning continues training a base model on domain- or task-specific data so it performs better for that use case."
+  },
+  {
+    level: "hard",
+    q: "What does RLHF (Reinforcement Learning from Human Feedback) primarily help with?",
+    options: [
+      "Aligning model responses with human preferences",
+      "Compressing the model onto mobile devices",
+      "Translating between programming languages",
+      "Generating images from text"
+    ],
+    correct: 0,
+    explanation: "RLHF uses human preference ratings to train models to give more helpful, honest, and appropriate responses."
+  }
+];
+
+const DIFFICULTY_TIME = { easy: 360, medium: 300, hard: 180 }; // seconds for whole quiz
+
+/* =====================================================================
+   State
+   ===================================================================== */
+let state = {
+  questions: [],
+  current: 0,
+  score: 0,
+  selected: null,
+  answered: false,
+  answers: [],
+  timerEnabled: true,
+  shuffle: true,
+  difficulty: 'medium',
+  timeLeft: 300,
+  timerId: null
+};
+
+const el = (id) => document.getElementById(id);
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+/* =====================================================================
+   Setup screen interactions
+   ===================================================================== */
+el('difficultySeg').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  [...el('difficultySeg').children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.difficulty = btn.dataset.diff;
+  refreshCount(); // count changes per difficulty (option A)
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el(id).classList.add('active');
+}
+
+/* Fisher-Yates shuffle */
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* Build the working question set: filter to the chosen difficulty (option A),
+   then apply shuffling to questions and answers if enabled. */
+function buildQuestions() {
+  let pool = QUESTIONS.filter(item => item.level === state.difficulty);
+  let qs = pool.map(item => {
+    const correctText = item.options[item.correct];
+    let opts = item.options.map((text, i) => ({ text, isCorrect: i === item.correct }));
+    if (state.shuffle) opts = shuffle(opts);
+    return { q: item.q, options: opts, correctText, explanation: item.explanation };
+  });
+  if (state.shuffle) qs = shuffle(qs);
+  return qs;
+}
+
+/* Count of questions available at the currently selected difficulty */
+function countForDifficulty() {
+  return QUESTIONS.filter(item => item.level === state.difficulty).length;
+}
+function refreshCount() {
+  el('qCount').textContent = countForDifficulty();
+}
+
+/* =====================================================================
+   Start quiz
+   ===================================================================== */
+el('startBtn').addEventListener('click', () => {
+  state.timerEnabled = el('timerToggle').checked;
+  state.shuffle = el('shuffleToggle').checked;
+  state.questions = buildQuestions();
+  state.current = 0;
+  state.score = 0;
+  state.answers = [];
+  state.timeLeft = DIFFICULTY_TIME[state.difficulty];
+
+  el('liveScore').textContent = '0';
+  showScreen('quizScreen');
+  renderQuestion();
+  if (state.timerEnabled) startTimer();
+  else el('timerDisplay').style.display = 'none';
+});
+
+/* =====================================================================
+   Render a question
+   ===================================================================== */
+function renderQuestion() {
+  const q = state.questions[state.current];
+  state.selected = null;
+  state.answered = false;
+
+  el('qProgress').textContent = `Question ${state.current + 1} of ${state.questions.length}`;
+  el('progressFill').style.width = ((state.current) / state.questions.length * 100) + '%';
+  el('questionText').textContent = q.q;
+
+  const box = el('optionsBox');
+  box.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('button');
+    div.className = 'option';
+    div.dataset.index = i;
+    div.innerHTML = `<span class="letter">${LETTERS[i]}</span><span class="opt-text">${opt.text}</span>`;
+    div.addEventListener('click', () => selectOption(i));
+    box.appendChild(div);
+  });
+
+  el('feedback').className = 'feedback';
+  el('submitBtn').textContent = 'Submit Answer';
+  el('submitBtn').disabled = true;
+}
+
+function selectOption(i) {
+  if (state.answered) return;
+  state.selected = i;
+  [...el('optionsBox').children].forEach((c, idx) => {
+    c.classList.toggle('selected', idx === i);
+  });
+  el('submitBtn').disabled = false;
+}
+
+/* =====================================================================
+   Submit / Next button (shared)
+   ===================================================================== */
+el('submitBtn').addEventListener('click', () => {
+  if (!state.answered) submitAnswer();
+  else nextQuestion();
+});
+
+function submitAnswer(auto = false) {
+  if (state.answered) return;
+  if (state.selected === null && !auto) return;
+  state.answered = true;
+
+  const q = state.questions[state.current];
+  const opts = [...el('optionsBox').children];
+  const correctIdx = q.options.findIndex(o => o.isCorrect);
+  const isCorrect = state.selected === correctIdx;
+
+  opts.forEach((c, idx) => {
+    c.classList.add('locked');
+    if (idx === correctIdx) {
+      c.classList.add('correct');
+      c.querySelector('.mark') || appendMark(c, '✓ Correct answer');
+    }
+    if (idx === state.selected && !isCorrect) {
+      c.classList.add('wrong');
+      appendMark(c, '✗ Your pick');
+    }
+  });
+
+  if (isCorrect) {
+    state.score++;
+    el('liveScore').textContent = state.score;
+  }
+
+  const fb = el('feedback');
+  fb.className = 'feedback show ' + (isCorrect ? 'good' : 'bad');
+  el('fbTitle').textContent = isCorrect ? '✓ Correct!'
+      : (state.selected === null ? '⏰ Time / no answer' : '✗ Not quite');
+  el('fbExp').textContent = q.explanation || '';
+
+  state.answers.push({
+    question: q.q,
+    chosenText: state.selected !== null ? q.options[state.selected].text : '(no answer)',
+    correctText: q.correctText,
+    isCorrect
+  });
+
+  pauseTimer();
+
+  el('submitBtn').disabled = false;
+  el('submitBtn').textContent =
+    (state.current + 1 < state.questions.length) ? 'Next Question →' : 'See Results →';
+}
+
+function appendMark(optEl, text) {
+  const span = document.createElement('span');
+  span.className = 'mark';
+  span.textContent = text;
+  optEl.appendChild(span);
+}
+
+function nextQuestion() {
+  state.current++;
+  if (state.current < state.questions.length) {
+    renderQuestion();
+    if (state.timerEnabled) resumeTimer();
+  } else {
+    finishQuiz();
+  }
+}
+
+/* =====================================================================
+   Timer
+   ===================================================================== */
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+function paintTimer() {
+  const d = el('timerDisplay');
+  d.textContent = fmt(state.timeLeft);
+  d.classList.toggle('warn', state.timeLeft <= 30);
+}
+function startTimer() {
+  el('timerDisplay').style.display = '';
+  paintTimer();
+  state.timerId = setInterval(tick, 1000);
+}
+function tick() {
+  state.timeLeft--;
+  paintTimer();
+  if (state.timeLeft <= 0) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+    if (!state.answered) submitAnswer(true);
+    setTimeout(finishQuiz, 400);
+  }
+}
+function pauseTimer() { if (state.timerId) { clearInterval(state.timerId); state.timerId = null; } }
+function resumeTimer() {
+  if (state.timerEnabled && !state.timerId && state.timeLeft > 0) {
+    state.timerId = setInterval(tick, 1000);
+  }
+}
+
+/* =====================================================================
+   Results
+   ===================================================================== */
+function finishQuiz() {
+  pauseTimer();
+  el('progressFill').style.width = '100%';
+
+  const total = state.questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  el('finalScore').textContent = `${state.score} / ${total}`;
+  el('finalPct').textContent = `${pct}%`;
+
+  let msg;
+  if (pct === 100) msg = '🏆 Perfect score!';
+  else if (pct >= 80) msg = '🌟 Excellent!';
+  else if (pct >= 60) msg = '👍 Good job!';
+  else if (pct >= 40) msg = '🙂 Not bad — keep going!';
+  else msg = '📚 Keep learning!';
+  el('perfMsg').textContent = msg;
+
+  const box = el('reviewBox');
+  box.innerHTML = '';
+  state.answers.forEach((a, i) => {
+    const item = document.createElement('div');
+    item.className = 'review-item';
+    item.innerHTML = `
+      <div class="rq">${i + 1}. ${a.question}<span class="badge">${a.isCorrect ? '✅' : '❌'}</span></div>
+      <div class="ra">Your answer: <span class="tag ${a.isCorrect ? 'ok' : 'no'}">${a.chosenText}</span></div>
+      ${a.isCorrect ? '' : `<div class="ra">Correct answer: <span class="tag ok">${a.correctText}</span></div>`}
+    `;
+    box.appendChild(item);
+  });
+
+  showScreen('resultScreen');
+}
+
+el('restartBtn').addEventListener('click', () => {
+  pauseTimer();
+  refreshCount();
+  showScreen('startScreen');
+});
+
+/* Initialize the question count for the default difficulty on load */
+refreshCount();
+</script>
+</body>
+</html>
